@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 25px 30px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header-title {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .control-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .control-group input, .control-group select {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+        
+        .control-group input:focus, .control-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .btn {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: auto;
+        }
+        
+        .btn-start {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-start:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+        
+        .btn-stop {
+            background: #f44336;
+            color: white;
+            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.4);
+        }
+        
+        .btn-stop:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(244, 67, 54, 0.5);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            margin-left: auto;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .status::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: block;
+        }
+        
+        .status.connected {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .status.connected::before {
+            background: #4caf50;
+            animation: pulse 2s infinite;
+        }
+        
+        .status.disconnected {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .status.disconnected::before {
+            background: #f44336;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .scale-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px 30px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .scale-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .scale {
+            position: relative;
+            height: 50px;
+            background: #f5f5f5;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .scale-markers {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            height: 100%;
+            padding: 0 10px;
+        }
+        
+        .scale-marker {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .scale-marker span {
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+        }
+        
+        .connections-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 25px 30px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .connections-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .connection {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .connection:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+        
+        .conn-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .conn-hosts {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .conn-desc {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .conn-rates {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        
+        .rate-item {
+            background: white;
+            padding: 8px;
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+        }
+        
+        .rate-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        
+        .rate-values {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+        
+        .rate-tx {
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        .rate-rx {
+            color: #4caf50;
+            font-weight: 600;
+        }
+        
+        .conn-graph {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .graph-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .graph-label {
+            font-size: 11px;
+            font-weight: 600;
+            width: 25px;
+            color: #666;
+        }
+        
+        .graph-bar-bg {
+            flex: 1;
+            height: 20px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .graph-bar {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+        
+        .graph-bar.tx {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .graph-bar.rx {
+            background: linear-gradient(90deg, #4caf50 0%, #8bc34a 100%);
+        }
+        
+        .totals-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 25px 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .totals-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .totals-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        
+        .total-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 15px;
+            color: white;
+        }
+        
+        .total-card.peak {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .total-card-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.9;
+            margin-bottom: 15px;
+        }
+        
+        .total-rates {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .total-rate-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .total-rate-label {
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0.9;
+        }
+        
+        .total-rate-value {
+            font-size: 16px;
+            font-weight: 700;
+        }
+        
+        .no-connections {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-title">Network Traffic Monitor</div>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Interface</label>
+                    <select id="interface">
+                    </select>
+                </div>
+                
+                <button class="btn btn-start" id="startBtn">Start</button>
+                <button class="btn btn-stop" id="stopBtn" disabled>Stop</button>
+                
+                <div class="status disconnected" id="status">Disconnected</div>
+            </div>
+        </div>
+        
+        <div class="scale-container">
+            <div class="scale-title">Bandwidth Scale (10s Average)</div>
+            <div class="scale">
+                <div class="scale-markers" id="scaleMarkers"></div>
+            </div>
+        </div>
+        
+        <div class="connections-container">
+            <div class="connections-title">Active Connections</div>
+            <div id="connections">
+                <div class="no-connections">No active connections</div>
+            </div>
+        </div>
+        
+        <div class="totals-container">
+            <div class="totals-title">Statistics</div>
+            <div id="totals"></div>
+        </div>
+    </div>
+
+    <script>
+        // WebSocket URL configuration
+        var WS_URL = null;
+        var interfaces = null;
+        
+        let ws = null;
+        let maxRate = 1000; // 1 Kbps default
+        
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusEl = document.getElementById('status');
+        const interfaceSelect = document.getElementById('interface');
+        const connectionsEl = document.getElementById('connections');
+        const totalsEl = document.getElementById('totals');
+        
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 b/s';
+            const k = 1000;
+            const sizes = ['b/s', 'Kb/s', 'Mb/s', 'Gb/s'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return (bytes / Math.pow(k, i)).toFixed(1) + ' ' + sizes[i];
+        }
+        
+        function updateScale() {
+            const markers = document.getElementById('scaleMarkers');
+            markers.innerHTML = '';
+            
+            const steps = [0, 0.25, 0.5, 0.75, 1.0];
+            var maxPct;
+            try {
+                maxPct = maxRate / interfaces.find(interface => interface.id == interfaceSelect.value).max;
+            } catch (error) {
+                maxPct = 1.0;
+            }
+            steps.forEach(step => {
+                const marker = document.createElement('div');
+                marker.className = 'scale-marker';
+                marker.innerHTML = `<span>${formatBytes(maxRate * step)} ${step == 1.0 ? `(${Math.round(maxPct * 100)}%)` : ""}</span>`;
+                markers.appendChild(marker);
+            });
+        }
+        
+        function updateConnections(data) {
+            if (!data.connections || data.connections.length === 0) {
+                connectionsEl.innerHTML = '<div class="no-connections">No active connections</div>';
+                return;
+            }
+            
+            // Update max rate for scaling
+            let currentMax = 0;
+            data.connections.forEach(conn => {
+                currentMax = Math.max(currentMax, conn.tx10s || 0, conn.rx10s || 0);
+            });
+            
+            if (currentMax > maxRate) {
+                maxRate = currentMax * 1.2;
+                updateScale();
+            }
+            
+            connectionsEl.innerHTML = '';
+            
+            data.connections.forEach(conn => {
+                const div = document.createElement('div');
+                div.className = 'connection';
+                
+                const txHost = conn.txhost + ':' + conn.txport;
+                const rxHost = conn.rxhost + ':' + conn.rxport;
+                
+                const tx10s = conn.tx10s || 0;
+                const rx10s = conn.rx10s || 0;
+                
+                const txWidth = Math.min((tx10s / maxRate) * 100, 100);
+                const rxWidth = Math.min((rx10s / maxRate) * 100, 100);
+                
+                div.innerHTML = `
+                    <div class="conn-header">
+                        <div class="conn-hosts">${txHost} ↔ ${rxHost}</div>
+                        <div class="conn-desc">${conn.description}</div>
+                    </div>
+                    <div class="conn-rates">
+                        <div class="rate-item">
+                            <div class="rate-label">2 Second</div>
+                            <div class="rate-values">
+                                <span class="rate-tx">↑ ${formatBytes(conn.tx2s)}</span>
+                                <span class="rate-rx">↓ ${formatBytes(conn.rx2s)}</span>
+                            </div>
+                        </div>
+                        <div class="rate-item">
+                            <div class="rate-label">10 Second</div>
+                            <div class="rate-values">
+                                <span class="rate-tx">↑ ${formatBytes(conn.tx10s)}</span>
+                                <span class="rate-rx">↓ ${formatBytes(conn.rx10s)}</span>
+                            </div>
+                        </div>
+                        <div class="rate-item">
+                            <div class="rate-label">40 Second</div>
+                            <div class="rate-values">
+                                <span class="rate-tx">↑ ${formatBytes(conn.tx40s)}</span>
+                                <span class="rate-rx">↓ ${formatBytes(conn.rx40s)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="conn-graph">
+                        <div class="graph-row">
+                            <div class="graph-label">TX</div>
+                            <div class="graph-bar-bg">
+                                <div class="graph-bar tx" style="width: ${txWidth}%"></div>
+                            </div>
+                        </div>
+                        <div class="graph-row">
+                            <div class="graph-label">RX</div>
+                            <div class="graph-bar-bg">
+                                <div class="graph-bar rx" style="width: ${rxWidth}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                connectionsEl.appendChild(div);
+            });
+        }
+        
+        function updateTotals(data) {
+            if (!data.total) {
+                totalsEl.innerHTML = '';
+                return;
+            }
+            
+            const total = data.total;
+            const peak = data.peak || {};
+            
+            totalsEl.innerHTML = `
+                <div class="totals-grid">
+                    <div class="total-card">
+                        <div class="total-card-title">Current Total</div>
+                        <div class="total-rates">
+                            <div class="total-rate-row">
+                                <span class="total-rate-label">2s Average</span>
+                                <span class="total-rate-value">↑ ${formatBytes(total['2s'])} / ↓ ${formatBytes(total.rx2s)}</span>
+                            </div>
+                            <div class="total-rate-row">
+                                <span class="total-rate-label">10s Average</span>
+                                <span class="total-rate-value">↑ ${formatBytes(total['10s'])} / ↓ ${formatBytes(total.rx10s)}</span>
+                            </div>
+                            <div class="total-rate-row">
+                                <span class="total-rate-label">40s Average</span>
+                                <span class="total-rate-value">↑ ${formatBytes(total['40s'])} / ↓ ${formatBytes(total.rx40s)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="total-card peak">
+                        <div class="total-card-title">Peak Rates</div>
+                        <div class="total-rates">
+                            <div class="total-rate-row">
+                                <span class="total-rate-label">2s Peak</span>
+                                <span class="total-rate-value">${formatBytes(peak['2s'] || 0)}</span>
+                            </div>
+                            <div class="total-rate-row">
+                                <span class="total-rate-label">10s Peak</span>
+                                <span class="total-rate-value">${formatBytes(peak['10s'] || 0)}</span>
+                            </div>
+                            <div class="total-rate-row">
+                                <span class="total-rate-label">40s Peak</span>
+                                <span class="total-rate-value">${formatBytes(peak['40s'] || 0)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function connect() {
+            ws = new WebSocket(WS_URL);
+            
+            ws.onopen = () => {
+                statusEl.textContent = 'Connected';
+                statusEl.className = 'status connected';
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                
+                const cmd = { interface: interfaceSelect.value };
+                ws.send(JSON.stringify(cmd));
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    updateConnections(data);
+                    updateTotals(data);
+                } catch (e) {
+                    console.error('Error parsing message:', e);
+                }
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+            
+            ws.onclose = () => {
+                statusEl.textContent = 'Disconnected';
+                statusEl.className = 'status disconnected';
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                ws = null;
+            };
+        }
+        
+        function disconnect() {
+            if (ws) {
+                ws.close();
+            }
+        }
+        
+        startBtn.addEventListener('click', connect);
+        stopBtn.addEventListener('click', disconnect);
+        
+        updateScale();
+
+        function load_settings() {
+            fetch('config.json')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                WS_URL = data.ws_url;
+                interfaces = data.interfaces;
+                interfaces.map(interface => interfaceSelect.add(new Option(interface.id, interface.id)));
+            })
+            .catch(error => {
+                console.error('Error fetching config:', error);
+            });
+        }
+
+        // Initialize on load
+        load_settings();
+
+</script>
+</body>
+</html>
