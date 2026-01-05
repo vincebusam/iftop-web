@@ -8,7 +8,7 @@ Installation requirements:
 Usage:
     python iftop_backend.py
 
-The server will listen on ws://localhost:8765
+The server will listen on ws://localhost:8766
 """
 
 import asyncio
@@ -266,10 +266,10 @@ async def handle_client(websocket, path):
 
 async def main():
     """Start the WebSocket server."""
-    print("Starting iftop WebSocket server on ws://localhost:8765")
+    print("Starting iftop WebSocket server on ws://localhost:8766")
     print("Make sure iftop is installed and available in your PATH")
     
-    async with websockets.serve(handle_client, "0.0.0.0", 8765):
+    async with websockets.serve(handle_client, "0.0.0.0", 8766):
         await asyncio.Future()  # Run forever
 
 
