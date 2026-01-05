@@ -20,19 +20,25 @@ import websockets
 
 def load_hosts():
     hosts = {}
-    ethers = dict(map(lambda x: x.strip().split(), open("/usr/local/etc/ethers").readlines()))
-    res = subprocess.run(["dhcp-lease-list"], capture_output=True, text=True, check=True)
-    for line in res.stdout.splitlines():
-        parts = line.split()
-        if len(parts) < 3:
-            continue
-        try:
-            ipaddress.ip_address(parts[1])
-        except ValueError:
-            continue
-        hosts[parts[1]] = parts[2]
-        if parts[0] in ethers:
-            hosts[parts[1]] = ethers[parts[0]]
+    try:
+        ethers = dict(map(lambda x: x.strip().split(), open("/usr/local/etc/ethers").readlines()))
+    except FileNotFoundError as e:
+        ethers = {}
+    try:
+        res = subprocess.run(["dhcp-lease-list"], capture_output=True, text=True, check=True)
+        for line in res.stdout.splitlines():
+            parts = line.split()
+            if len(parts) < 3:
+                continue
+            try:
+                ipaddress.ip_address(parts[1])
+            except ValueError:
+                continue
+            hosts[parts[1]] = parts[2]
+            if parts[0] in ethers:
+                hosts[parts[1]] = ethers[parts[0]]
+    except FileNotFoundError as e:
+        pass
     return hosts
 
 
